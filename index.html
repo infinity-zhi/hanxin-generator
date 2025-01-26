@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉信码生成器</title>
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <script src="./js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="./js/wasmzint.js" type="text/javascript"></script>
+    <style>
+        #main {
+            width: 600px;
+            padding: 30px;
+            margin: 50px auto;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+    <script type="text/javascript">
+        window.onload = function() {
+            wasmzint({ locateFile: function(location) { return './js/wasmzint.wasm' } }).then(function(instance) {
+                window.zint = instance;
+            })
+        }
+        function generate() {
+            let text = document.getElementById('input-text').value;
+            if (!text) return;
+            if (!window.zint) return;
+
+            let instance = new window.zint.ZintWrapper(116, text, false, false, -1, 0, 0, 0);
+            instance.render(0, 10, 1);
+            let bitmapRGBA = new Uint8ClampedArray(instance.width * instance.height * 4)
+            let bitmapRGB = instance.getBitmap()
+            for (let i = 0; i < instance.width * instance.height; i++) {
+                bitmapRGBA[i * 4 + 0] = bitmapRGB[i * 3 + 0];
+                bitmapRGBA[i * 4 + 1] = bitmapRGB[i * 3 + 1];
+                bitmapRGBA[i * 4 + 2] = bitmapRGB[i * 3 + 2];
+                bitmapRGBA[i * 4 + 3] = 255;
+            }
+            let canvas = document.getElementById('canvas');
+            let ctx = canvas.getContext('2d');
+            canvas.width = canvas.height = instance.width;
+            let imgData = new ImageData(bitmapRGBA, instance.width, instance.height);
+            ctx.putImageData(imgData, 0, 0);
+
+            instance.delete();
+            let src = canvas.toDataURL();
+            document.getElementById('image').src = src;
+        }
+    </script>
+</head>
+<body>
+    <div id="main">
+        <div class="row">
+            <h1>汉信码生成器</h1>
+            <textarea class="form-control mt-3 mb-3" id="input-text" placeholder="输入汉信码内容" rows="3"></textarea>
+            <button type="button" id="generate" class="btn btn-primary" onclick="generate()">生成汉信码</button>
+            <div class="d-flex flex-row justify-content-center mt-5 mb-5">
+                <img id="image" width="350" height="350" src="./image.png">
+                <canvas id="canvas" style="display: none"></canvas>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
